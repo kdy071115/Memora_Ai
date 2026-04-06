@@ -4,7 +4,7 @@ import httpx
 import boto3
 from typing import Optional
 
-from langchain_openai import ChatOpenAI
+from langchain_anthropic import ChatAnthropic
 
 from app.config import settings
 from app.utils.pdf_parser import extract_text_from_pdf
@@ -29,9 +29,9 @@ s3_client = (
 )
 logger.info("[Storage] mode=%s", "S3" if _use_s3 else "LOCAL")
 
-llm = ChatOpenAI(
+llm = ChatAnthropic(
     model=settings.llm_model,
-    api_key=settings.openai_api_key,
+    api_key=settings.anthropic_api_key,
     temperature=0.3,
 )
 

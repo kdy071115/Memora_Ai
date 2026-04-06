@@ -1,7 +1,7 @@
 import json
 import logging
 import re
-from langchain_openai import ChatOpenAI
+from langchain_anthropic import ChatAnthropic
 
 from app.config import settings
 from app.prompts.grading import GRADING_PROMPT
@@ -9,9 +9,9 @@ from app.models.schemas import QuizGradeRequest, QuizGradeResponse
 
 logger = logging.getLogger(__name__)
 
-llm = ChatOpenAI(
+llm = ChatAnthropic(
     model=settings.llm_model,
-    api_key=settings.openai_api_key,
+    api_key=settings.anthropic_api_key,
     temperature=0.2,
 )
 
