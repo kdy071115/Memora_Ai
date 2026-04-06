@@ -1,4 +1,5 @@
 import logging
+import os
 import httpx
 import boto3
 from typing import Optional
@@ -14,12 +15,19 @@ from app.models.schemas import DocumentProcessRequest, DocumentCallbackPayload, 
 
 logger = logging.getLogger(__name__)
 
-s3_client = boto3.client(
-    "s3",
-    aws_access_key_id=settings.aws_access_key_id or None,
-    aws_secret_access_key=settings.aws_secret_access_key or None,
-    region_name=settings.aws_region,
+# AWS 자격증명이 모두 채워져 있을 때만 S3 클라이언트 생성
+_use_s3 = bool(settings.aws_access_key_id and settings.aws_secret_access_key)
+s3_client = (
+    boto3.client(
+        "s3",
+        aws_access_key_id=settings.aws_access_key_id,
+        aws_secret_access_key=settings.aws_secret_access_key,
+        region_name=settings.aws_region,
+    )
+    if _use_s3
+    else None
 )
+logger.info("[Storage] mode=%s", "S3" if _use_s3 else "LOCAL")
 
 llm = ChatOpenAI(
     model=settings.llm_model,
@@ -93,8 +101,29 @@ async def process_document(req: DocumentProcessRequest):
 
 
 def _download_file(stored_path: str) -> bytes:
+    """
+    storedPath 가 절대 경로(`/...`) 또는 윈도우 드라이브(`C:\\...`) 면 디스크에서 직접 읽고,
+    아니면 S3 키로 간주해 다운로드합니다.
+    """
+    if _is_local_path(stored_path):
+        if not os.path.exists(stored_path):
+            raise FileNotFoundError(f"로컬 파일을 찾을 수 없습니다: {stored_path}")
+        with open(stored_path, "rb") as f:
+            return f.read()
+
+    if s3_client is None:
+        raise RuntimeError(
+            "AWS 자격증명이 없어 S3 다운로드가 불가합니다. "
+            "백엔드가 로컬 저장 모드인지 확인하세요."
+        )
     response = s3_client.get_object(Bucket=settings.aws_s3_bucket, Key=stored_path)
     return response["Body"].read()
+
+
+def _is_local_path(path: str) -> bool:
+    if not path:
+        return False
+    return path.startswith("/") or (len(path) > 2 and path[1] == ":")
 
 
 def _generate_summary(text: str) -> str:
