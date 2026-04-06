@@ -1,7 +1,7 @@
 import os
 import logging
 from typing import List, Optional
-from langchain_openai import OpenAIEmbeddings
+from langchain_voyageai import VoyageAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document as LcDocument
 
@@ -14,12 +14,23 @@ class EmbeddingService:
     """lecture_id 단위로 FAISS 인덱스를 분리 관리"""
 
     def __init__(self):
-        self.embeddings = OpenAIEmbeddings(
-            model=settings.embedding_model,
-            api_key=settings.openai_api_key,
-        )
+        self._embeddings: Optional[VoyageAIEmbeddings] = None
         self.stores: dict[str, FAISS] = {}
         os.makedirs(settings.vector_store_path, exist_ok=True)
+
+    @property
+    def embeddings(self) -> VoyageAIEmbeddings:
+        """Voyage 임베딩 클라이언트 지연 초기화 (키 없이 import 가능하도록)"""
+        if self._embeddings is None:
+            if not settings.voyage_api_key:
+                raise RuntimeError(
+                    "VOYAGE_API_KEY 가 설정되지 않았습니다. .env 를 확인하세요."
+                )
+            self._embeddings = VoyageAIEmbeddings(
+                model=settings.embedding_model,
+                voyage_api_key=settings.voyage_api_key,
+            )
+        return self._embeddings
 
     def _index_path(self, lecture_id: int) -> str:
         return os.path.join(settings.vector_store_path, f"lecture_{lecture_id}")
