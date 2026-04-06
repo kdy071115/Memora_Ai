@@ -100,3 +100,7 @@ class AnalysisResponse(BaseModel):
     weakConceptAnalysis: str
     recommendations: List[str]
     motivation: str
+    # 프론트엔드 레이더 차트용 (고정 6개 역량, 0~150 스케일)
+    competencies: dict[str, int] = Field(default_factory=dict)
+    # 최대 성장 지표 문구 (예: "개념 이해력이 지난주 대비 30% 상승")
+    maxGrowthIndicator: str = ""
