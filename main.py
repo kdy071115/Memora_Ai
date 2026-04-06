@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 
-from app.routers import health
+from app.routers import health, document, qa, quiz, analysis
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -22,6 +22,10 @@ app.add_middleware(
 )
 
 app.include_router(health.router)
+app.include_router(document.router)
+app.include_router(qa.router)
+app.include_router(quiz.router)
+app.include_router(analysis.router)
 
 
 @app.get("/")
