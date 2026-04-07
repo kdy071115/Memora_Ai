@@ -1,5 +1,6 @@
 import os
 import logging
+import threading
 from typing import List, Optional
 from langchain_voyageai import VoyageAIEmbeddings
 from langchain_community.vectorstores import FAISS
@@ -16,7 +17,17 @@ class EmbeddingService:
     def __init__(self):
         self._embeddings: Optional[VoyageAIEmbeddings] = None
         self.stores: dict[str, FAISS] = {}
+        # 동시 업로드 race condition 방지: lecture_id 단위 락
+        self._locks: dict[str, threading.Lock] = {}
+        self._locks_master = threading.Lock()
         os.makedirs(settings.vector_store_path, exist_ok=True)
+
+    def _lock_for(self, lecture_id: int) -> threading.Lock:
+        key = str(lecture_id)
+        with self._locks_master:
+            if key not in self._locks:
+                self._locks[key] = threading.Lock()
+            return self._locks[key]
 
     @property
     def embeddings(self) -> VoyageAIEmbeddings:
@@ -39,6 +50,9 @@ class EmbeddingService:
         """
         chunks: [{chunk_index, content, page_number, document_id, document_name}]
         Returns embedding ids (FAISS internal ids as strings).
+
+        같은 lecture 에 동시에 add_documents 가 호출되어도 안전하도록 락을 걸고,
+        메모리에 store 가 없으면 디스크에서 먼저 로드해 기존 청크를 보존합니다.
         """
         docs = [
             LcDocument(
@@ -54,15 +68,20 @@ class EmbeddingService:
         ]
 
         key = str(lecture_id)
-        if key in self.stores:
-            ids = self.stores[key].add_documents(docs)
-        else:
-            store = FAISS.from_documents(docs, self.embeddings)
-            self.stores[key] = store
-            ids = list(store.docstore._dict.keys())
+        with self._lock_for(lecture_id):
+            # 메모리에 없으면 디스크에서 먼저 로드 시도 (이전 문서들 보존)
+            if key not in self.stores:
+                self._get_or_load(lecture_id)
 
-        self.save_index(lecture_id)
-        return [str(i) for i in ids]
+            if key in self.stores:
+                ids = self.stores[key].add_documents(docs)
+            else:
+                store = FAISS.from_documents(docs, self.embeddings)
+                self.stores[key] = store
+                ids = list(store.docstore._dict.keys())
+
+            self.save_index(lecture_id)
+            return [str(i) for i in ids]
 
     def search(self, lecture_id: int, query: str, top_k: int = 5) -> List[dict]:
         store = self._get_or_load(lecture_id)
