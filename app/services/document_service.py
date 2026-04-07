@@ -33,6 +33,7 @@ llm = ChatAnthropic(
     model=settings.llm_model,
     api_key=settings.anthropic_api_key,
     temperature=0.3,
+    max_tokens=8192,
 )
 
 
@@ -66,8 +67,8 @@ async def process_document(req: DocumentProcessRequest):
         ]
         embedding_ids = embedding_service.add_documents(req.lectureId, chunk_inputs)
 
-        # 5. 요약 생성 (앞부분 12000자 제한)
-        full_text = "\n\n".join(c["content"] for c in chunks)[:12000]
+        # 5. 요약 생성 (앞부분 60000자 제한 — Claude 컨텍스트 안에서 충분한 디테일 확보)
+        full_text = "\n\n".join(c["content"] for c in chunks)[:60000]
         summary = _generate_summary(full_text)
 
         # 6. 콜백
