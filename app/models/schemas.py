@@ -121,3 +121,30 @@ class SelfExplainResponse(BaseModel):
     misconceptions: List[str] = Field(default_factory=list)
     feedback: str
     suggestedNextSteps: List[str] = Field(default_factory=list)
+
+
+# ====== Assignment Feedback ======
+class AssignmentFeedbackRequest(BaseModel):
+    """강사가 학생 제출물에 대해 AI 피드백 초안을 요청.
+
+    `attachmentBase64` 가 있으면 백엔드가 디스크에서 읽어 base64 로 인코딩해 보낸 것.
+    파일 이름의 확장자에 따라 PDF 추출 또는 plain text 디코딩으로 처리한다.
+    """
+
+    assignmentTitle: str
+    assignmentDescription: str
+    studentName: Optional[str] = None
+    submissionContent: str = ""
+    attachmentName: Optional[str] = None
+    attachmentBase64: Optional[str] = None
+
+
+class AssignmentFeedbackResponse(BaseModel):
+    overallScore: int  # 0-100
+    grade: Literal["EXCELLENT", "GOOD", "AVERAGE", "NEEDS_WORK"]
+    summary: str  # 1-2 줄 종합 평가
+    strengths: List[str] = Field(default_factory=list)
+    improvements: List[str] = Field(default_factory=list)
+    missingPoints: List[str] = Field(default_factory=list)  # 과제 주제에 비추어 빠뜨린 것
+    suggestions: List[str] = Field(default_factory=list)  # 다음 단계 제안
+    instructorDraft: str  # 강사가 댓글창에 그대로 붙여넣을 수 있는 자연어 피드백 초안
