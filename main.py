@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 
-from app.routers import health, document, qa, quiz, analysis
+from app.routers import health, document, qa, quiz, analysis, self_explain
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -40,6 +40,7 @@ OPENAPI_TAGS = [
     {"name": "QA", "description": "RAG 기반 질의응답"},
     {"name": "Quiz", "description": "퀴즈 생성 및 채점"},
     {"name": "Analysis", "description": "학습 데이터 진단 및 추천"},
+    {"name": "SelfExplain", "description": "자기 설명 평가 (메타인지 학습)"},
 ]
 
 
@@ -81,6 +82,7 @@ app.include_router(document.router)
 app.include_router(qa.router)
 app.include_router(quiz.router)
 app.include_router(analysis.router)
+app.include_router(self_explain.router)
 
 
 @app.get("/", include_in_schema=False)
