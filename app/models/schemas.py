@@ -104,3 +104,20 @@ class AnalysisResponse(BaseModel):
     competencies: dict[str, int] = Field(default_factory=dict)
     # 최대 성장 지표 문구 (예: "개념 이해력이 지난주 대비 30% 상승")
     maxGrowthIndicator: str = ""
+
+
+# ====== Self-Explanation Coaching ======
+class SelfExplainRequest(BaseModel):
+    lectureId: int
+    explanation: str
+    focusTopic: Optional[str] = None  # 학생이 특정 주제에 한해 설명할 때 (옵션)
+
+
+class SelfExplainResponse(BaseModel):
+    overallScore: int  # 0-100
+    grade: Literal["EXCELLENT", "GOOD", "NEEDS_WORK"]
+    strengths: List[str] = Field(default_factory=list)
+    missingConcepts: List[str] = Field(default_factory=list)
+    misconceptions: List[str] = Field(default_factory=list)
+    feedback: str
+    suggestedNextSteps: List[str] = Field(default_factory=list)
