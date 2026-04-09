@@ -2,7 +2,18 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 
-from app.routers import health, document, qa, quiz, analysis, self_explain, assignment_feedback
+from app.routers import (
+    health,
+    document,
+    qa,
+    quiz,
+    analysis,
+    self_explain,
+    assignment_feedback,
+    care_message,
+    daily_missions,
+    audio_note,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -42,6 +53,9 @@ OPENAPI_TAGS = [
     {"name": "Analysis", "description": "학습 데이터 진단 및 추천"},
     {"name": "SelfExplain", "description": "자기 설명 평가 (메타인지 학습)"},
     {"name": "AssignmentFeedback", "description": "강사용 과제 피드백 초안 생성"},
+    {"name": "CareMessage", "description": "위험 학생 케어 메시지 초안"},
+    {"name": "DailyMissions", "description": "학생 개인화 데일리 학습 미션"},
+    {"name": "AudioNote", "description": "강의 음성 → 트랜스크립트 + 요약 + 챕터"},
 ]
 
 
@@ -85,6 +99,9 @@ app.include_router(quiz.router)
 app.include_router(analysis.router)
 app.include_router(self_explain.router)
 app.include_router(assignment_feedback.router)
+app.include_router(care_message.router)
+app.include_router(daily_missions.router)
+app.include_router(audio_note.router)
 
 
 @app.get("/", include_in_schema=False)
