@@ -3,7 +3,7 @@ from typing import List
 from langchain_anthropic import ChatAnthropic
 
 from app.config import settings
-from app.prompts.qa import QA_PROMPT
+from app.prompts.qa import QA_PROMPT, SOCRATIC_QA_PROMPT
 from app.services.embedding_service import embedding_service
 from app.models.schemas import QaAskRequest, QaAskResponse, SourceRef
 
@@ -39,8 +39,9 @@ def ask(req: QaAskRequest) -> QaAskResponse:
         f"{m.role}: {m.content}" for m in req.history[-6:]
     ) if req.history else "(없음)"
 
-    # 4. LLM 호출
-    prompt = QA_PROMPT.format(
+    # 4. LLM 호출 — mode 에 따라 프롬프트 분기
+    template = SOCRATIC_QA_PROMPT if getattr(req, "mode", None) == "SOCRATIC" else QA_PROMPT
+    prompt = template.format(
         retrieved_chunks=retrieved_chunks,
         chat_history=history_text,
         question=req.question,

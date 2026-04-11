@@ -35,6 +35,7 @@ class QaAskRequest(BaseModel):
     lectureId: int
     question: str
     difficulty: Literal["EASY", "MEDIUM", "HARD"] = "MEDIUM"
+    mode: Literal["NORMAL", "SOCRATIC"] = "NORMAL"
     history: List[QaSourceMessage] = Field(default_factory=list)
 
 
@@ -192,6 +193,28 @@ class DailyMissionResponse(BaseModel):
 
 
 # ====== Audio Note (음성 강의 자동 노트화) ======
+# ====== Concept Knowledge Graph ======
+class ConceptGraphRequest(BaseModel):
+    lectureId: int
+
+
+class ConceptNode(BaseModel):
+    id: str          # 고유 식별자 (영문 slug 또는 한글 그대로)
+    label: str       # 사용자에게 보여줄 이름
+    importance: int   # 0~100 (노드 크기에 반영)
+
+
+class ConceptEdge(BaseModel):
+    source: str      # node id
+    target: str      # node id
+    label: str       # 관계 설명 ("선행 개념", "포함", "관련" 등)
+
+
+class ConceptGraphResponse(BaseModel):
+    nodes: List[ConceptNode] = Field(default_factory=list)
+    edges: List[ConceptEdge] = Field(default_factory=list)
+
+
 class AudioTranscribeRequest(BaseModel):
     """파일은 multipart 로 별도 전송. 이 모델은 메타데이터만."""
     languageHint: Optional[str] = "ko"

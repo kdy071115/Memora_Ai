@@ -13,6 +13,7 @@ from app.routers import (
     care_message,
     daily_missions,
     audio_note,
+    concept_graph,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -56,6 +57,7 @@ OPENAPI_TAGS = [
     {"name": "CareMessage", "description": "위험 학생 케어 메시지 초안"},
     {"name": "DailyMissions", "description": "학생 개인화 데일리 학습 미션"},
     {"name": "AudioNote", "description": "강의 음성 → 트랜스크립트 + 요약 + 챕터"},
+    {"name": "ConceptGraph", "description": "강의 자료 → 개념 지식 그래프"},
 ]
 
 
@@ -102,6 +104,7 @@ app.include_router(assignment_feedback.router)
 app.include_router(care_message.router)
 app.include_router(daily_missions.router)
 app.include_router(audio_note.router)
+app.include_router(concept_graph.router)
 
 
 @app.get("/", include_in_schema=False)
