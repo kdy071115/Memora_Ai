@@ -70,11 +70,14 @@ def generate(req: QuizGenerateRequest) -> QuizGenerateResponse:
             options = q.get("options")
             correct_answer = str(q.get("correctAnswer", ""))
 
-            # 객관식의 경우 LLM 이 정답을 항상 첫 번째에 배치하는 편향이 있어
-            # 옵션 순서를 무작위로 섞습니다. 정답은 텍스트 매칭이라 셔플해도 안전.
-            if quiz_type == "MULTIPLE_CHOICE" and options and len(options) > 1:
-                options = list(options)
-                random.shuffle(options)
+            if quiz_type == "MULTIPLE_CHOICE" and options:
+                # "A. 텍스트" → "텍스트" 접두사 제거
+                options = [_strip_label(o) for o in options]
+                correct_answer = _resolve_correct_answer(correct_answer, q.get("options", []))
+
+                # LLM 이 정답을 항상 첫 번째에 배치하는 편향이 있어 셔플
+                if len(options) > 1:
+                    random.shuffle(options)
 
             quizzes.append(GeneratedQuiz(
                 question=q.get("question", ""),
@@ -90,6 +93,28 @@ def generate(req: QuizGenerateRequest) -> QuizGenerateResponse:
 
     logger.info(f"퀴즈 생성 완료: {len(quizzes)}개")
     return QuizGenerateResponse(quizzes=quizzes)
+
+
+_LABEL_RE = re.compile(r"^[A-Da-d][.)]\s*")
+
+
+def _strip_label(s: str) -> str:
+    """'A. 텍스트' → '텍스트' — 접두사 제거"""
+    return _LABEL_RE.sub("", s.strip())
+
+
+def _resolve_correct_answer(raw: str, original_options: list) -> str:
+    """
+    correctAnswer 가 라벨만('A')이면 원본 옵션에서 전체 텍스트를 찾아 반환.
+    이미 전체 텍스트면 접두사만 제거하여 반환.
+    """
+    stripped = raw.strip()
+    # 단일 라벨 (A~D)
+    if len(stripped) == 1 and stripped.upper() in "ABCD":
+        idx = ord(stripped.upper()) - ord("A")
+        if 0 <= idx < len(original_options):
+            return _strip_label(str(original_options[idx]))
+    return _strip_label(stripped)
 
 
 def _parse_json_array(text: str) -> List[dict]:

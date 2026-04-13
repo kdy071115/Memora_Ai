@@ -19,7 +19,7 @@ llm = ChatAnthropic(
 def grade(req: QuizGradeRequest) -> QuizGradeResponse:
     # 객관식은 LLM 없이 즉시 채점
     if req.quizType == "MULTIPLE_CHOICE":
-        is_correct = _normalize(req.userAnswer) == _normalize(req.correctAnswer)
+        is_correct = _mc_match(req.userAnswer, req.correctAnswer)
         return QuizGradeResponse(
             isCorrect=is_correct,
             score=100 if is_correct else 0,
@@ -47,6 +47,36 @@ def grade(req: QuizGradeRequest) -> QuizGradeResponse:
 
 def _normalize(s: str) -> str:
     return s.strip().upper().replace(".", "").replace(" ", "")
+
+
+# 객관식 "A.", "B." 접두사 제거 — "A. 텍스트" → "텍스트"
+_LABEL_PREFIX = re.compile(r"^[A-Da-d][.)]\s*")
+
+
+def _strip_label(s: str) -> str:
+    return _LABEL_PREFIX.sub("", s.strip())
+
+
+def _mc_match(user_answer: str, correct_answer: str) -> bool:
+    """
+    객관식 정답 비교. 다음 케이스를 모두 처리:
+      1. 둘 다 전체 텍스트 → 정규 비교
+      2. correctAnswer 가 라벨만("A") → userAnswer 가 "A. ..." 로 시작하는지
+      3. 한쪽에만 "A." 접두사가 붙은 경우 → 접두사를 떼고 비교
+    """
+    # 1) 정규 비교
+    if _normalize(user_answer) == _normalize(correct_answer):
+        return True
+    # 2) correctAnswer 가 단일 라벨(A~D)인 경우
+    ca = correct_answer.strip().upper()
+    if len(ca) == 1 and ca in "ABCD":
+        ua = user_answer.strip()
+        if ua.upper().startswith(ca + ".") or ua.upper().startswith(ca + ")"):
+            return True
+    # 3) 접두사 제거 후 비교
+    if _normalize(_strip_label(user_answer)) == _normalize(_strip_label(correct_answer)):
+        return True
+    return False
 
 
 def _parse_json(text: str) -> dict:
